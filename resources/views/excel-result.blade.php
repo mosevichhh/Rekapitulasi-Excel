@@ -6,6 +6,8 @@
     <title>Hasil Rekapitulasi Excel</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
         body {
             background-color: #e9f5ff;
@@ -82,13 +84,18 @@
         .copy-icon:hover {
             color: #0056b3;
         }
-        /* Tambahan styling untuk jarak antar reseller */
         .reseller + .reseller {
-            margin-top: 50px; /* Jarak antar reseller */
+            margin-top: 50px;
         }
         .separator {
             margin: 20px 0;
             border-top: 1px dashed #007bff;
+        }
+        canvas {
+            margin: 0 auto;
+            display: block;
+            max-width: 100%;
+            height: auto;
         }
     </style>
 </head>
@@ -99,19 +106,21 @@
     <!-- Tombol Salin di luar elemen reseller -->
     <i class="fas fa-copy copy-icon" onclick="copyAllText()" title="Copy All"></i>
 
-    <!-- Gabungkan total dan konten reseller ke dalam satu div untuk dicopy -->
-    <div id="content-to-copy">
-        <!-- Tampilan data total di bagian atas -->
-        <div class="summary">
-            <p><strong>Success:</strong> {{ number_format($totalSuccess, 0, ',', '.') }}</p>
-            <p><strong>Failed:</strong> {{ number_format($totalFailed, 0, ',', '.') }}</p>
-            <p><strong>GMV:</strong> {{ number_format($totalGMV, 0, ',', '.') }}</p>
-            <p><strong>Profit:</strong> {{ number_format($totalProfit, 0, ',', '.') }}</p>
-            <p><strong>BABE:</strong> {{ number_format($totalBABE, 0, ',', '.') }}</p>
-            <p><strong>Net Profit:</strong> {{ number_format($totalNetProfit, 0, ',', '.') }}</p>
-        </div>
+    <!-- Tampilan data total di bagian atas -->
+    <div class="summary">
+        <p><strong>Success:</strong> {{ number_format($totalSuccess, 0, ',', '.') }}</p>
+        <p><strong>Failed:</strong> {{ number_format($totalFailed, 0, ',', '.') }}</p>
+        <p><strong>GMV:</strong> {{ number_format($totalGMV, 0, ',', '.') }}</p>
+        <p><strong>Profit:</strong> {{ number_format($totalProfit, 0, ',', '.') }}</p>
+        <p><strong>BABE:</strong> {{ number_format($totalBABE, 0, ',', '.') }}</p>
+        <p><strong>Net Profit:</strong> {{ number_format($totalNetProfit, 0, ',', '.') }}</p>
+    </div>
 
-        <!-- Bagian konten reseller -->
+    <!-- Canvas untuk Pie Chart -->
+    <canvas id="resellerPieChart" width="400" height="400"></canvas>
+
+    <!-- Bagian konten reseller -->
+    <div id="content-to-copy">
         @foreach ($resellerData as $reseller => $data)
             <div class="reseller">
                 <h4>{{ $reseller }}</h4>
@@ -153,7 +162,77 @@
         window.getSelection().removeAllRanges();
         alert('Content copied to clipboard!');
     }
-</script>
 
+    // Data dari Laravel
+    var resellerLabels = {!! json_encode(array_keys($resellerData)) !!};
+    var resellerCounts = {!! json_encode(array_column($resellerData, 'Success')) !!};
+
+    // Hitung total
+    var total = resellerCounts.reduce((a, b) => a + b, 0);
+
+    // Hitung persentase
+    var percentages = resellerCounts.map(count => (count / total * 100).toFixed(2) + '%');
+
+    // Inisialisasi Chart.js
+    var ctx = document.getElementById('resellerPieChart').getContext('2d');
+    var resellerPieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: resellerLabels,
+            datasets: [{
+                label: 'Jumlah Transaksi Sukses',
+                data: resellerCounts,
+                backgroundColor: [
+                    'rgba(255, 105, 180, 0.7)',  // Pink
+                    'rgba(54, 162, 235, 0.7)',   // Biru
+                    'rgba(153, 102, 255, 0.7)',  // Ungu
+                    'rgba(124, 252, 0, 1)',    // Hijau
+                    'rgba(255, 50, 50, 1)'    // Merah
+                ],
+                borderColor: [
+                    'rgba(255, 105, 180, 1)',    // Pink
+                    'rgba(54, 162, 235, 1)',     // Biru
+                    'rgba(153, 102, 255, 1)',    // Ungu
+                    'rgba(75, 192, 192, 1)',     // Hijau
+                    'rgba(255, 99, 132, 1)'      // Merah
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            animation: {
+                duration: 5000,  // Durasi animasi 5 detik
+                easing: 'easeInOutCubic',  // Gaya animasi
+                loop: true,  // Animasi terus berulang
+                animateRotate: true,  // Rotasi animasi
+                animateScale: false  // Nonaktifkan skala animasi
+            },
+            plugins: {
+                datalabels: {
+                    color: '#fff',
+                    formatter: function(value, context) {
+                        return percentages[context.dataIndex];
+                    }
+                }
+            }
+        }
+    });
+
+    // Saat kursor masuk, hentikan animasi dan set chart pada posisi penuh
+    document.getElementById('resellerPieChart').addEventListener('mouseenter', function() {
+        resellerPieChart.stop();
+        resellerPieChart.options.animation.loop = false;
+        resellerPieChart.update();
+    });
+
+    // Saat kursor keluar, mulai animasi kembali dari awal
+    document.getElementById('resellerPieChart').addEventListener('mouseleave', function() {
+        resellerPieChart.options.animation.loop = true;
+        resellerPieChart.update();
+        resellerPieChart.reset();
+        resellerPieChart.update();
+    });
+</script>
 </body>
 </html>

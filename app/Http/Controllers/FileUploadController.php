@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\DB;
 
 class FileUploadController extends BaseController
 {
@@ -12,6 +13,17 @@ class FileUploadController extends BaseController
     public function showUploadForm()
     {
         return view('upload_file');
+    }
+    
+    public function showChart() {
+        // Ambil data dari database atau sumber lain
+        $resellerData = DB::table('your_table')
+            ->select('reseller_name', DB::raw('count(*) as success_count'))
+            ->where('rc', 0) // Hanya transaksi sukses
+            ->groupBy('reseller_name')
+            ->pluck('success_count', 'reseller_name');
+    
+        return view('your_view_name', compact('resellerData'));
     }
 
     // Proses unggah dan parsing file
