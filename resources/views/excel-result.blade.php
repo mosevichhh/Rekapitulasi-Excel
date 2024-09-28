@@ -8,98 +8,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <style>
-        body {
-            background-color: #e9f5ff;
-            color: #333;
-            font-family: 'Arial', sans-serif;
-        }
-        .container {
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-            padding: 40px;
-            max-width: 800px;
-            margin: 50px auto;
-            position: relative;
-            transition: all 0.3s ease-in-out;
-        }
-        .container:hover {
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
-        }
-        h2 {
-            text-align: center;
-            color: #007bff;
-            margin-bottom: 30px;
-            font-weight: bold;
-            font-size: 28px;
-        }
-        .summary {
-            margin-bottom: 30px;
-        }
-        .summary p {
-            margin: 10px 0;
-            font-size: 16px;
-        }
-        .reseller {
-            margin-bottom: 30px;
-            padding: 20px;
-            border-radius: 10px;
-            background-color: #f1faff;
-        }
-        .reseller h4 {
-            color: #007bff;
-            font-weight: bold;
-        }
-        .reseller ul {
-            list-style: none;
-            padding-left: 0;
-        }
-        .reseller ul li {
-            padding: 10px 0;
-            border-bottom: 1px solid #e0f0ff;
-            color: #333;
-            font-size: 16px;
-        }
-        .reseller ul li:last-child {
-            border-bottom: none;
-        }
-        .products {
-            margin-top: 20px;
-        }
-        .product-detail {
-            margin-bottom: 10px;
-            padding: 10px;
-            background-color: #e9f5ff;
-            border-radius: 5px;
-        }
-        .copy-icon {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            cursor: pointer;
-            color: #007bff;
-            font-size: 18px;
-        }
-        .copy-icon:hover {
-            color: #0056b3;
-        }
-        .reseller + .reseller {
-            margin-top: 50px;
-        }
-        .separator {
-            margin: 20px 0;
-            border-top: 1px dashed #007bff;
-        }
-        canvas {
-            margin: 0 auto;
-            display: block;
-            max-width: 100%;
-            height: auto;
-        }
-    </style>
+    <link rel="stylesheet" href= "{{ asset(path: 'css\result.css')}}">
+
 </head>
 <body>
+<header>@include('layouts.header')</header>
 <div class="container">
     <h2>Hasil Rekapitulasi Excel</h2>
 
@@ -120,20 +33,25 @@
     <canvas id="resellerPieChart" width="400" height="400"></canvas>
 
     <!-- Bagian konten reseller -->
-    <div id="content-to-copy">
-        @foreach ($resellerData as $reseller => $data)
-            <div class="reseller">
-                <h4>{{ $reseller }}</h4>
-                <ul>
-                    <li>Success: {{ number_format($data['Success'], 0, ',', '.') }}</li>
-                    <li>Failed: {{ number_format($data['Failed'], 0, ',', '.') }}</li>
-                    <li>Trx Depo: {{ number_format($data['TrxDepo'], 0, ',', '.') }}</li>
-                    <li>Total Depo: {{ number_format($data['TotalDepo'], 0, ',', '.') }}</li>
-                    <li>GMV: {{ number_format($data['GMV'], 0, ',', '.') }}</li>
-                    <li>Profit: {{ number_format($data['Profit'], 0, ',', '.') }}</li>
+<div id="content-to-copy">
+    @foreach ($resellerData as $reseller => $data)
+        <div class="reseller">
+            <h4>{{ $reseller }}</h4>
+            <ul>
+                <li>Success: {{ number_format($data['Success'], 0, ',', '.') }}</li>
+                <li>Failed: {{ number_format($data['Failed'], 0, ',', '.') }}</li>
+                <li>Trx Depo: {{ number_format($data['TrxDepo'], 0, ',', '.') }}</li>
+                <li>Total Depo: {{ number_format($data['TotalDepo'], 0, ',', '.') }}</li>
+                <li>GMV: {{ number_format($data['GMV'], 0, ',', '.') }}</li>
+                <li>Profit: {{ number_format($data['Profit'], 0, ',', '.') }}</li>
+                
+            </ul>
+
+                    <!-- Menampilkan BABE hanya untuk Gigapulsa dan H2H FIFA -->
+                @if($reseller === 'Gigapulsa' || $reseller === 'H2H FIFA')
                     <li>BABE: {{ number_format($data['BABE'], 0, ',', '.') }}</li>
-                    <li>Net Profit: {{ number_format($data['NetProfit'], 0, ',', '.') }}</li>
-                </ul>
+                @endif
+            </ul>
 
                 <div class="products">
                     <h5>Detail Produk</h5>
@@ -152,16 +70,6 @@
 </div>
 
 <script>
-    function copyAllText() {
-        var content = document.getElementById('content-to-copy');
-        var range = document.createRange();
-        range.selectNode(content);
-        window.getSelection().removeAllRanges();
-        window.getSelection().addRange(range);
-        document.execCommand('copy');
-        window.getSelection().removeAllRanges();
-        alert('Content copied to clipboard!');
-    }
 
     // Data dari Laravel
     var resellerLabels = {!! json_encode(array_keys($resellerData)) !!};
