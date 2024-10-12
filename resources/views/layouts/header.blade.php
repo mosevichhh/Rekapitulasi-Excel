@@ -1,16 +1,19 @@
 <header>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <a class="navbar-brand" href="{{ route('upload') }}">Dashboard</a> <!-- Ganti dengan tautan ke halaman yang diinginkan -->
-        <div class="collapse navbar-collapse">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary"> 
+        <a class="navbar-brand" href="#">Dashboard</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link" href="transaksi.html">Transaksi</a> <!-- Ganti dengan tautan yang sesuai -->
+                    <a class="nav-link" href="{{ route('upload') }}">Upload</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="reseller.html">Reseller</a> <!-- Ganti dengan tautan yang sesuai -->
+                    <a class="nav-link" href="{{ route('rekapitulasi.index') }}">Rekapitulasi</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="supplier.html">Supplier</a> <!-- Ganti dengan tautan yang sesuai -->
+                    <a class="nav-link" href="reseller.html">Reseller</a>
                 </li>
             </ul>
         </div>

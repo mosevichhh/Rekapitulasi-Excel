@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -33,6 +33,11 @@
 
         <form action="{{ route('upload') }}" method="POST" enctype="multipart/form-data">
             @csrf
+            <!-- Bagian input tanggal dihapus -->
+            <!-- <div class="form-group">
+                <label for="upload_date">Pilih Tanggal:</label>
+                <input type="date" class="form-control" id="upload_date" name="upload_date" required>
+            </div> -->
             <div class="form-group text-center">
                 <label for="file">Pilih File Excel:</label>
                 <div class="upload-box" id="upload-box">

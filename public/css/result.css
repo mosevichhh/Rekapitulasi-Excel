@@ -217,3 +217,7 @@ canvas {
             opacity: 1;
             visibility: visible;
         }
+        .custom-title {
+            font-size: 1.3rem; /* Atur ukuran font sesuai kebutuhan */
+        }
+        

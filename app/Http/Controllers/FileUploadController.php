@@ -11,10 +11,16 @@ class FileUploadController extends BaseController
 {
     // Menampilkan form unggah file
     public function showUploadForm()
-    {
-        return view('upload_file');
-    }
+{
+    // Mendefinisikan variabel $uploadDate (misalnya tanggal saat ini)
+    $uploadDate = now()->format('Y-m-d');
     
+    // Mengirim variabel $uploadDate ke view
+    return view('upload_file', compact('uploadDate'));
+}
+
+
+    // Menampilkan data chart
     public function showChart() {
         // Ambil data dari database atau sumber lain
         $resellerData = DB::table('your_table')
@@ -22,17 +28,19 @@ class FileUploadController extends BaseController
             ->whereIn('rc', ['00', '0']) // Hanya transaksi sukses dengan rc '00' atau '0'
             ->groupBy('reseller_name')
             ->pluck('success_count', 'reseller_name');
-    
         return view('your_view_name', compact('resellerData'));
     }
 
     // Proses unggah dan parsing file
     public function upload(Request $request)
     {
-        // Validasi file yang diunggah
+        // Validasi file yang diunggah dan tanggal
         $request->validate([
             'file' => 'required|mimes:xlsx,xls',
         ]);
+
+        // Mengambil nilai tanggal yang diinput
+        $uploadDate = $request->input('upload_date');
 
         // Membaca file Excel dan proses data
         $file = $request->file('file');
@@ -44,7 +52,7 @@ class FileUploadController extends BaseController
         // Variabel untuk menyimpan total data
         $totalSuccess = 0;
         $totalFailed = 0;
-        $totalGMV = 0;
+        $totalGMV = 0; // Total GMV
         $totalProfit = 0;
         $totalBABE = 0;
         $totalNetProfit = 0;
@@ -65,14 +73,17 @@ class FileUploadController extends BaseController
             $rc = isset($row[8]) ? $row[8] : ''; // Kolom ke-9 (indeks 8)
 
             // Hitung Success dan Failed secara total berdasarkan RC
-            if (in_array($rc, ['00', '0'])) {
+            if (in_array($rc, ['00', '0']) && $productCode != 'REFUND' && $productCode != 'DEPOSIT') {
                 $totalSuccess++;
+                $totalGMV += $gmv; // Akumulasi GMV untuk total GMV
             } else {
-                $totalFailed++;
+                if ($productCode != 'REFUND' && $productCode != 'DEPOSIT') {
+                    $resellerData[$reseller]['Failed']++;
+                    $totalFailed++;
+                }
             }
 
-            // Akumulasi total GMV dan Profit
-            $totalGMV += $price;
+            // Akumulasi total Profit
             $totalProfit += $profit;
 
             // Inisialisasi data reseller jika belum ada
@@ -93,12 +104,12 @@ class FileUploadController extends BaseController
             // Hitung nilai Success dan Failed berdasarkan nilai kolom RC
             if (in_array($rc, ['00', '0'])) {
                 $resellerData[$reseller]['Success']++;
+                $resellerData[$reseller]['GMV'] += $gmv; // Akumulasi GMV untuk reseller
             } else {
                 $resellerData[$reseller]['Failed']++;
             }
 
-            // Akumulasi nilai GMV dan Profit
-            $resellerData[$reseller]['GMV'] += $price;
+            // Akumulasi nilai Profit
             $resellerData[$reseller]['Profit'] += $profit;
 
             // Ketentuan perhitungan BABE
@@ -106,35 +117,36 @@ class FileUploadController extends BaseController
             $isSupplierValid = ($supplier === 'GGP' || $supplier === 'FFP');
 
             // Hitung profit berdasarkan supplier
-            if ($isSupplierValid && $productCode != 'REFUND' && $productCode != 'DEPOSIT') {
+            if ($isSupplierValid && $productCode != 'REFUND' && $productCode != 'DEPOSIT' && in_array($rc, ['00', '0'])) {
                 if (str_contains($productCode, 'PLN')) {
-                    $totalProfit += 5; // profit untuk produk PLN
+                    $totalProfit -= 5; // Kurangi profit untuk produk PLN
                 } elseif ($price <= 20000) {
-                    $totalProfit += 10; // profit untuk produk selain PLN dengan harga <= 20.000
+                    $totalProfit -= 10; // Kurangi profit untuk produk selain PLN dengan harga <= 20.000
                 } else {
-                    $totalProfit += 30; // profit untuk produk selain PLN dengan harga > 20.000
+                    $totalProfit -= 30; // Kurangi profit untuk produk selain PLN dengan harga > 20.000
                 }
             }
 
-            // Hanya tambahkan BABE jika reseller adalah Gigapulsa atau H2H FIFA
-            if ($isResellerValid && $productCode != 'REFUND' && $productCode != 'DEPOSIT') {
-                $fee = 0;
+           // Hanya tambahkan BABE jika reseller adalah Gigapulsa atau H2H FIFA
+            if ($isResellerValid && $productCode != 'REFUND' && $productCode != 'DEPOSIT' && in_array($rc, ['00', '0'])) {
+                $babe = 0;
                 if (str_contains($productCode, 'PLN')) {
-                    $fee = 5; // Fee untuk produk PLN
+                    $babe = 5; // Fee untuk produk PLN
                 } elseif ($price <= 20000) {
-                    $fee = 10; // Fee untuk produk selain PLN dengan harga <= 20.000
+                    $babe = 10; // Fee untuk produk selain PLN dengan harga <= 20.000
                 } else {
-                    $fee = 30; // Fee untuk produk selain PLN dengan harga > 20.000
+                    $babe = 30; // Fee untuk produk selain PLN dengan harga > 20.000
                 }
-                $totalBABE += $fee; // Akumulasi total BABE
-                $resellerData[$reseller]['BABE'] += $fee; // Tambahkan BABE untuk reseller
+                $totalBABE += $babe; // Akumulasi total BABE
+                $resellerData[$reseller]['BABE'] += $babe; // Tambahkan BABE untuk reseller
             }
 
-           // Hitung transaksi deposit jika produk adalah 'DEPOSIT'
-           if ($productCode == 'DEPOSIT') {
-            $resellerData[$reseller]['TrxDepo']++;
-            $resellerData[$reseller]['TotalDepo'] += $gmv;
-        }
+
+            // Hitung transaksi deposit jika produk adalah 'DEPOSIT'
+            if ($productCode == 'DEPOSIT') {
+                $resellerData[$reseller]['TrxDepo']++;
+                $resellerData[$reseller]['TotalDepo'] += $gmv;
+            }
 
             // Inisialisasi data produk jika belum ada
             if (!isset($resellerData[$reseller]['products'][$productCode])) {
@@ -147,7 +159,7 @@ class FileUploadController extends BaseController
 
             // Akumulasi data produk
             $resellerData[$reseller]['products'][$productCode]['Trx']++;
-            $resellerData[$reseller]['products'][$productCode]['GMV'] += $price;
+            $resellerData[$reseller]['products'][$productCode]['GMV'] += $gmv;
             $resellerData[$reseller]['products'][$productCode]['Profit'] += $profit;
         }
 
